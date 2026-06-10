@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="zh-CN">
 <head>
 <meta charset="UTF-8">
@@ -53,13 +53,20 @@ html,body{width:100%;height:100%;overflow:hidden;font-family:'PingFang SC','Micr
 /* GAME */
 #game{background:linear-gradient(180deg,#FFE8E0 0%,#FFF5F0 30%,#F0FFF4 70%,#55EFC4 100%);position:absolute;overflow:hidden}
 .game-header{position:absolute;top:16px;left:0;width:100%;text-align:center;z-index:20;padding:0 16px}
-.game-header h2{font-size:18px;font-weight:900;color:#2D3436;letter-spacing:1px}
-.game-score{display:flex;align-items:center;justify-content:center;gap:8px;margin-top:8px}
-.repair-bar-bg{width:220px;height:18px;background:#DFE6E9;border-radius:12px;overflow:hidden;border:2px solid #00B894}
-.repair-bar-fill{height:100%;background:linear-gradient(90deg,#55EFC4,#00B894,#00996B);border-radius:10px;transition:width .4s;width:0%}
-.repair-label{font-size:12px;font-weight:700;color:#00996B}
+.game-header h2{font-size:18px;font-weight:900;color:#2D3436;letter-spacing:1px;text-shadow:0 1px 3px rgba(255,255,255,0.6)}
+.game-metrics{display:flex;flex-direction:column;gap:6px;margin-top:8px;padding:8px 12px;background:rgba(255,255,255,0.85);border-radius:12px;box-shadow:0 4px 15px rgba(0,0,0,0.06);backdrop-filter:blur(5px);border:1px solid rgba(0,184,148,0.15)}
+.metric-item{display:flex;align-items:center;justify-content:space-between;gap:8px}
+.metric-label{font-size:11px;font-weight:700;color:#2D3436;width:65px;text-align:left}
+.bar-bg{flex:1;height:12px;background:#DFE6E9;border-radius:6px;overflow:hidden;border:1px solid #b2bec3;position:relative}
+.bar-fill{height:100%;border-radius:6px;transition:width 0.3s ease-out;width:0%}
+.score-bg{border-color:#00B894}
+.score-fill{background:linear-gradient(90deg,#55EFC4,#00B894)}
+.health-bg{border-color:#d63031}
+.health-fill{background:linear-gradient(90deg,#ff7675,#d63031);width:100%}
+.metric-value{font-size:11px;font-weight:800;color:#2D3436;width:35px;text-align:right}
 #game-canvas{position:absolute;top:0;left:0;width:100%;height:100%;z-index:5}
-.brush-tool{position:absolute;bottom:60px;left:50%;transform:translateX(-50%);z-index:15;cursor:grab;touch-action:none;width:60px;height:120px}
+.brush-tool{position:absolute;bottom:60px;left:50%;transform:translateX(-50%);z-index:15;cursor:grab;touch-action:none;width:60px;height:120px;transition:transform 0.15s ease-out, filter 0.2s}
+.brush-tool.super{filter:drop-shadow(0 0 18px #F39C12)}
 .brush-body{position:absolute;bottom:0;left:50%;transform:translateX(-50%);width:24px;height:80px;background:linear-gradient(180deg,#00B894,#00996B);border-radius:12px;border:2px solid #006442}
 .brush-head{position:absolute;top:0;left:50%;transform:translateX(-50%);width:30px;height:35px;background:#fff;border-radius:8px;border:2px solid #00B894}
 .brush-bristles{position:absolute;top:-8px;left:50%;transform:translateX(-50%);width:26px;height:12px;display:flex;gap:2px;justify-content:center}
@@ -179,9 +186,17 @@ html,body{width:100%;height:100%;overflow:hidden;font-family:'PingFang SC','Micr
   <button class="back-btn" data-back="diagnosis">←</button>
   <div class="game-header">
     <h2>🪥 根源修护战</h2>
-    <div class="game-score">
-      <div class="repair-bar-bg"><div class="repair-bar-fill" id="repair-bar"></div></div>
-      <span class="repair-label" id="repair-text">0/100</span>
+    <div class="game-metrics">
+      <div class="metric-item">
+        <span class="metric-label">修护指数</span>
+        <div class="bar-bg score-bg"><div class="bar-fill score-fill" id="repair-bar"></div></div>
+        <span class="metric-value" id="repair-text">0%</span>
+      </div>
+      <div class="metric-item">
+        <span class="metric-label">牙齿健康度</span>
+        <div class="bar-bg health-bg"><div class="bar-fill health-fill" id="health-bar" style="width:100%"></div></div>
+        <span class="metric-value" id="health-text">100%</span>
+      </div>
     </div>
   </div>
   <canvas id="game-canvas"></canvas>
@@ -387,6 +402,8 @@ function initGame(){
   var brush=$('#brush-tool');
   var repairBar=$('#repair-bar');
   var repairText=$('#repair-text');
+  var healthBar=$('#health-bar');
+  var healthText=$('#health-text');
   var danmakuLayer=$('#danmaku-layer');
   var countdownOverlay=$('#countdown-overlay');
   var countdownNumber=$('#countdown-number');
@@ -395,10 +412,16 @@ function initGame(){
 
   var brushX=0,brushY=0,brushReady=false;
   var score=0,targetScore=100;
+  var health=100;
+  var shieldTimer=0;
+  var superTimer=0;
+  var shakeTimer=0;
   var gameActive=true,countdownPhase=true;
-  var bacteria=[],particles=[];
+  var bacteria=[],particles=[],powerUps=[];
   var rafId=null,spawnInterval=null,countdownTimer=null,worryInterval=null;
   var countdownBacteria=[];
+  var toothStatus=['healthy','healthy','healthy','healthy','healthy','healthy','healthy','healthy'];
+  var lastPowerUpSpawnTime=0;
 
   var problemLabels={bleeding:'出血',swelling:'红肿',sensitive:'敏感',plaque:'菌斑',breath:'口气',yellow:'暗沉'};
   var problems=PM.gameState.problems||[];
@@ -426,12 +449,24 @@ function initGame(){
     countdownBacteria.push({x:r+Math.random()*(canvas.width-r*2),y:-r,r:r,speed:1+Math.random(),color:bColors[Math.floor(Math.random()*bColors.length)],label:bLabels[Math.floor(Math.random()*bLabels.length)]});
   }
 
+  function spawnPowerUp(){
+    if(!gameActive||countdownPhase)return;
+    var now=Date.now();
+    if(now-lastPowerUpSpawnTime<6000)return;
+    if(Math.random()>0.45)return;
+    lastPowerUpSpawnTime=now;
+    var type=Math.random()>0.5?'gum4x':'vite';
+    var r=15;
+    powerUps.push({x:r+Math.random()*(canvas.width-r*2),y:-r,r:r,speed:1.8+Math.random()*0.8,type:type,pulse:0,hit:false});
+  }
+
   function cleanup(){
     gameActive=false;
     if(rafId)cancelAnimationFrame(rafId);
     if(spawnInterval)clearInterval(spawnInterval);
     if(countdownTimer)clearTimeout(countdownTimer);
     if(worryInterval)clearInterval(worryInterval);
+    brush.classList.remove('super');
   }
 
   // Drag
@@ -447,14 +482,23 @@ function initGame(){
     if(!dragging)return;e.preventDefault();
     var t=e.touches?e.touches[0]:e;
     var rect=app.getBoundingClientRect();
-    brushX=Math.max(20,Math.min(canvas.width-20,t.clientX-rect.left));
-    brushY=Math.max(60,Math.min(canvas.height-30,t.clientY-rect.top));
+    var newX=Math.max(20,Math.min(canvas.width-20,t.clientX-rect.left));
+    var newY=Math.max(60,Math.min(canvas.height-30,t.clientY-rect.top));
+
+    var distMoved=Math.sqrt(Math.pow(newX-brushX,2)+Math.pow(newY-brushY,2));
+    if(distMoved>8&&Math.random()>0.4){
+      particles.push({x:brushX,y:brushY-30,vx:(Math.random()-0.5)*2,vy:(Math.random()-0.5)*2,life:0.8,isBubble:true});
+    }
+
+    brushX=newX;
+    brushY=newY;
     moveBrush();
   }
   function onEnd(){dragging=false}
   function moveBrush(){
     brush.style.left=brushX+'px';brush.style.top=brushY+'px';
-    brush.style.transform='translate(-50%,-50%)';
+    var scale=(superTimer>0)?'1.6':'1';
+    brush.style.transform='translate(-50%,-50%) scale('+scale+')';
   }
 
   brush.addEventListener('touchstart',onStart,{passive:false});
@@ -469,11 +513,144 @@ function initGame(){
     return r+','+g+','+b;
   }
 
+  function markToothDamaged(){
+    var healthyIndices=[];
+    for(var i=0;i<8;i++){
+      if(toothStatus[i]==='healthy'){healthyIndices.push(i)}
+    }
+    if(healthyIndices.length>0){
+      var randIdx=healthyIndices[Math.floor(Math.random()*healthyIndices.length)];
+      toothStatus[randIdx]='damaged';
+    }
+  }
+
+  function triggerNaaisRescue(){
+    health=100;
+    for(var i=0;i<8;i++)toothStatus[i]='healthy';
+    bacteria=[];
+    powerUps=[];
+    healthBar.style.width='100%';
+    healthText.textContent='100%';
+    showToast('✨ 纳爱斯注入根源修护能量！健康度已恢复！');
+    sfx.success();
+  }
+
+  function drawTeeth(){
+    var toothCount=8;
+    var tWidth=canvas.width/toothCount;
+    var tHeight=32;
+    var tY=canvas.height-tHeight-10;
+
+    for(var i=0;i<toothCount;i++){
+      var tX=i*tWidth;
+      var status=toothStatus[i]||'healthy';
+      
+      ctx.save();
+      // Draw gum
+      ctx.fillStyle='#ffb8b8';
+      ctx.fillRect(tX,canvas.height-12,tWidth,12);
+
+      // Tooth shadow
+      ctx.shadowBlur=6;
+      ctx.shadowColor='rgba(0,0,0,0.06)';
+
+      if(status==='shielded'){
+        ctx.fillStyle='#E8FFF3';
+        ctx.strokeStyle='#00B894';
+        ctx.lineWidth=2;
+      }else if(status==='damaged'){
+        ctx.fillStyle='#FFEAA7';
+        ctx.strokeStyle='#FDCB6E';
+        ctx.lineWidth=1.5;
+      }else{
+        ctx.fillStyle='#FFFFFF';
+        ctx.strokeStyle='#DFE6E9';
+        ctx.lineWidth=1.5;
+      }
+
+      var r=6;
+      var w=tWidth-4;
+      var x=tX+2;
+      var y=tY;
+
+      ctx.beginPath();
+      ctx.moveTo(x+r,y);
+      ctx.arcTo(x,y,x,y+r,r);
+      ctx.lineTo(x,y+tHeight-r);
+      ctx.arcTo(x,y+tHeight,x+r,y+tHeight,r);
+      ctx.lineTo(x+w-r,y+tHeight);
+      ctx.arcTo(x+w,y+tHeight,x+w,y+tHeight-r,r);
+      ctx.lineTo(x+w,y+r);
+      ctx.arcTo(x+w,y,x+w-r,y,r);
+      ctx.closePath();
+      ctx.fill();
+      ctx.stroke();
+
+      // Reflections
+      if(status==='healthy'||status==='shielded'){
+        ctx.fillStyle='rgba(255,255,255,0.8)';
+        ctx.beginPath();
+        ctx.ellipse(x+6,y+8,2,4,Math.PI/4,0,Math.PI*2);
+        ctx.fill();
+      }
+
+      // Faces
+      if(status==='healthy'||status==='shielded'){
+        ctx.fillStyle='#2D3436';
+        ctx.beginPath();
+        ctx.arc(x+w/2-4,y+14,1.5,0,Math.PI*2);
+        ctx.arc(x+w/2+4,y+14,1.5,0,Math.PI*2);
+        ctx.fill();
+        ctx.strokeStyle='#2D3436';
+        ctx.lineWidth=1;
+        ctx.beginPath();
+        ctx.arc(x+w/2,y+15,3,0,Math.PI);
+        ctx.stroke();
+      }else if(status==='damaged'){
+        ctx.strokeStyle='#2D3436';
+        ctx.lineWidth=1;
+        ctx.beginPath();
+        ctx.moveTo(x+w/2-6,y+12);ctx.lineTo(x+w/2-2,y+16);
+        ctx.moveTo(x+w/2-2,y+12);ctx.lineTo(x+w/2-6,y+16);
+        ctx.moveTo(x+w/2+2,y+12);ctx.lineTo(x+w/2+6,y+16);
+        ctx.moveTo(x+w/2+6,y+12);ctx.lineTo(x+w/2+2,y+16);
+        ctx.moveTo(x+w/2-3,y+22);ctx.lineTo(x+w/2+3,y+22);
+        ctx.stroke();
+      }
+      ctx.restore();
+    }
+
+    if(shieldTimer>0){
+      ctx.save();
+      ctx.strokeStyle='rgba(85,239,196,0.6)';
+      ctx.lineWidth=6;
+      ctx.shadowBlur=15;
+      ctx.shadowColor='#55EFC4';
+      ctx.beginPath();
+      ctx.moveTo(0,tY-6);
+      ctx.lineTo(canvas.width,tY-6);
+      ctx.stroke();
+      ctx.fillStyle='#00996B';
+      ctx.font='bold 10px sans-serif';
+      ctx.textAlign='center';
+      ctx.fillText('🛡️ GUM4X修护屏障中...',canvas.width/2,tY-14);
+      ctx.restore();
+    }
+  }
+
   // Loop
   function loop(){
     if(!gameActive)return;
     try{
       ctx.clearRect(0,0,canvas.width,canvas.height);
+
+      ctx.save();
+      if(shakeTimer>0){
+        var dx=(Math.random()-0.5)*8;
+        var dy=(Math.random()-0.5)*8;
+        ctx.translate(dx,dy);
+        shakeTimer--;
+      }
 
       if(countdownPhase){
         var newCB=[];
@@ -491,41 +668,71 @@ function initGame(){
         }
         countdownBacteria=newCB;
       }else{
+        spawnPowerUp();
+
+        // Update & draw bacteria
         var newB=[];
         for(var i=0;i<bacteria.length;i++){
           var b=bacteria[i];
           if(b.hit||b.y>canvas.height+50)continue;
-          b.y+=b.speed;b.w+=b.ws;b.x+=Math.sin(b.w)*0.5;
+          b.y+=b.speed;b.w+=b.ws;b.x+=Math.sin(b.w)*1.5;
+          
+          var tY=canvas.height-42;
+          if(b.y>tY){
+            b.hit=true;
+            if(shieldTimer<=0){
+              health=Math.max(health-12,0);
+              healthBar.style.width=health+'%';
+              healthText.textContent=health+'%';
+              markToothDamaged();
+              shakeTimer=8;
+              sfx.beep(200,0.15,0.3);
+              if(health<=0){triggerNaaisRescue()}
+            }else{
+              sfx.beep(600,0.05,0.15);
+              for(var k=0;k<6;k++){
+                particles.push({x:b.x,y:tY,vx:(Math.random()-0.5)*6,vy:-Math.random()*4,life:0.8,color:'#55EFC4'});
+              }
+            }
+            continue;
+          }
+
           newB.push(b);
           var rgb=hexToRgb(b.color);
-          // Body
           ctx.beginPath();ctx.arc(b.x,b.y,b.r,0,Math.PI*2);
           ctx.fillStyle='rgba('+rgb+',0.7)';ctx.fill();
           ctx.strokeStyle='rgba('+rgb+',0.9)';ctx.lineWidth=2;ctx.stroke();
-          // Tentacles
           for(var j=0;j<4;j++){
             var a=(Math.PI*2/4)*j+b.w;
             ctx.beginPath();ctx.arc(b.x+Math.cos(a)*(b.r+6),b.y+Math.sin(a)*(b.r+6),3,0,Math.PI*2);
             ctx.fillStyle='rgba('+rgb+',0.5)';ctx.fill();
           }
-          // Eyes
           ctx.fillStyle='rgba(255,255,255,.9)';
           ctx.beginPath();ctx.arc(b.x-b.r*.3,b.y-b.r*.15,3,0,Math.PI*2);ctx.fill();
           ctx.beginPath();ctx.arc(b.x+b.r*.3,b.y-b.r*.15,3,0,Math.PI*2);ctx.fill();
           ctx.fillStyle='rgba(0,0,0,.7)';
           ctx.beginPath();ctx.arc(b.x-b.r*.3+1,b.y-b.r*.15,1.5,0,Math.PI*2);ctx.fill();
           ctx.beginPath();ctx.arc(b.x+b.r*.3+1,b.y-b.r*.15,1.5,0,Math.PI*2);ctx.fill();
-          // Label
           ctx.fillStyle='#fff';ctx.font='bold 11px sans-serif';
           ctx.textAlign='center';ctx.textBaseline='middle';
           ctx.fillText(b.label,b.x,b.y+b.r+12);
+
           // Collision
           if(brushReady){
+            var cRad=(superTimer>0)?50:25;
             var dx=b.x-brushX,dy=b.y-(brushY-30),dist=Math.sqrt(dx*dx+dy*dy);
-            if(dist<b.r+25){
+            if(dist<b.r+cRad){
               b.hit=true;score=Math.min(score+8,targetScore);
-              repairBar.style.width=score+'%';repairText.textContent=score+'/100';
-              for(var k=0;k<8;k++){particles.push({x:b.x,y:b.y,vx:(Math.random()-.5)*8,vy:(Math.random()-.5)*8-2,life:1,color:b.color})}
+              repairBar.style.width=score+'%';repairText.textContent=score+'%';
+              for(var k=0;k<10;k++){
+                particles.push({
+                  x:b.x,y:b.y,
+                  vx:(Math.random()-0.5)*8,vy:(Math.random()-0.5)*8-2,
+                  life:1,color:b.color,
+                  isLeaf:(Math.random()>0.7),
+                  isBubble:(Math.random()>0.5)
+                });
+              }
               sfx.pop();
               var dm=document.createElement('div');dm.className='danmaku';
               dm.textContent=dmMsgs[Math.floor(Math.random()*dmMsgs.length)];
@@ -536,17 +743,103 @@ function initGame(){
           }
         }
         bacteria=newB;
+
+        // Update & draw powerups
+        var newPups=[];
+        for(var i=0;i<powerUps.length;i++){
+          var p=powerUps[i];
+          if(p.hit)continue;
+          p.y+=p.speed;p.pulse+=0.05;
+          if(p.y>canvas.height+50)continue;
+          newPups.push(p);
+
+          ctx.save();
+          var glowSize=p.r+Math.sin(p.pulse)*4;
+          ctx.beginPath();ctx.arc(p.x,p.y,glowSize,0,Math.PI*2);
+          if(p.type==='gum4x'){
+            ctx.fillStyle='rgba(85,239,196,0.3)';ctx.strokeStyle='rgba(0,184,148,0.8)';
+          }else{
+            ctx.fillStyle='rgba(253,203,110,0.3)';ctx.strokeStyle='rgba(243,156,18,0.8)';
+          }
+          ctx.lineWidth=2;ctx.fill();ctx.stroke();
+
+          ctx.beginPath();ctx.arc(p.x,p.y,p.r-2,0,Math.PI*2);
+          ctx.fillStyle=p.type==='gum4x'?'#00B894':'#F39C12';ctx.fill();
+
+          ctx.fillStyle='#FFFFFF';ctx.font='bold 9px sans-serif';
+          ctx.textAlign='center';ctx.textBaseline='middle';
+          ctx.fillText(p.type==='gum4x'?'🌿':'VE',p.x,p.y);
+          ctx.restore();
+
+          if(brushReady){
+            var cRad=(superTimer>0)?50:25;
+            var dx=p.x-brushX,dy=p.y-(brushY-30),dist=Math.sqrt(dx*dx+dy*dy);
+            if(dist<p.r+cRad){
+              p.hit=true;
+              if(p.type==='gum4x'){
+                shieldTimer=180;
+                health=Math.min(health+15,100);
+                healthBar.style.width=health+'%';
+                healthText.textContent=health+'%';
+                for(var t=0;t<8;t++){
+                  if(toothStatus[t]==='damaged')toothStatus[t]='healthy';
+                }
+                sfx.beep(800,0.2,0.25);
+                showToast('🛡️ 激活GUM4X活性修护屏障！');
+              }else{
+                superTimer=240;
+                brush.classList.add('super');
+                sfx.beep(1000,0.25,0.25);
+                showToast('⚡ 激活维他命E能量！大范围清扫！');
+              }
+              var pColor=p.type==='gum4x'?'#55EFC4':'#FDCB6E';
+              for(var k=0;k<12;k++){
+                particles.push({
+                  x:p.x,y:p.y,
+                  vx:(Math.random()-0.5)*10,vy:(Math.random()-0.5)*10-2,
+                  life:1,color:pColor,
+                  isLeaf:(p.type==='gum4x'&&Math.random()>0.5)
+                });
+              }
+            }
+          }
+        }
+        powerUps=newPups;
       }
-      // Particles
+
+      drawTeeth();
+      ctx.restore();
+
+      if(shieldTimer>0)shieldTimer--;
+      if(superTimer>0){
+        superTimer--;
+        if(superTimer<=0)brush.classList.remove('super');
+      }
+
+      // Particles update
       var newP=[];
       for(var i=0;i<particles.length;i++){
         var p=particles[i];p.x+=p.vx;p.y+=p.vy;p.life-=.03;
         if(p.life<=0)continue;newP.push(p);
-        var rgb=hexToRgb(p.color);
-        ctx.beginPath();ctx.arc(p.x,p.y,4*p.life,0,Math.PI*2);
-        ctx.fillStyle='rgba('+rgb+','+p.life+')';ctx.fill();
+        
+        ctx.save();
+        if(p.isLeaf){
+          ctx.font=(12*p.life)+'px sans-serif';ctx.fillStyle='rgba(85,239,196,'+p.life+')';
+          ctx.fillText('🍃',p.x,p.y);
+        }else if(p.isBubble){
+          ctx.beginPath();ctx.arc(p.x,p.y,6*p.life,0,Math.PI*2);
+          ctx.fillStyle='rgba(178,235,242,'+(p.life*0.4)+')';
+          ctx.strokeStyle='rgba(0,188,212,'+(p.life*0.8)+')';
+          ctx.lineWidth=1;ctx.fill();ctx.stroke();
+        }else{
+          var rgb=hexToRgb(p.color);
+          ctx.beginPath();ctx.arc(p.x,p.y,4*p.life,0,Math.PI*2);
+          ctx.fillStyle='rgba('+rgb+','+p.life+')';ctx.fill();
+        }
+        ctx.restore();
       }
       particles=newP;
+
     }catch(err){console.warn('loop err:',err)}
     rafId=requestAnimationFrame(loop);
   }
