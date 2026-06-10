@@ -466,8 +466,19 @@ function initGame(){
     if(spawnInterval)clearInterval(spawnInterval);
     if(countdownTimer)clearTimeout(countdownTimer);
     if(worryInterval)clearInterval(worryInterval);
+    
+    // Remove event listeners to prevent memory leak and duplicate events
+    brush.removeEventListener('touchstart',onStart);
+    brush.removeEventListener('mousedown',onStart);
+    document.removeEventListener('touchmove',onMove);
+    document.removeEventListener('mousemove',onMove);
+    document.removeEventListener('touchend',onEnd);
+    document.removeEventListener('mouseup',onEnd);
+    
     brush.classList.remove('super');
+    PM.cleanupGame=null;
   }
+  PM.cleanupGame=cleanup;
 
   // Drag
   var dragging=false;
@@ -883,6 +894,13 @@ function initGame(){
   resize();
   brushX=canvas.width/2;brushY=canvas.height-100;brushReady=true;
   moveBrush();
+  
+  // Reset DOM progress bars and health
+  repairBar.style.width='0%';
+  repairText.textContent='0%';
+  healthBar.style.width='100%';
+  healthText.textContent='100%';
+
   countdownOverlay.style.display='flex';
   countdownSubEl.style.display='block';
   rafId=requestAnimationFrame(loop);
@@ -998,6 +1016,9 @@ document.addEventListener('click',function(e){
   var target=btn.getAttribute('data-back');
   if(!target)return;
   sfx.select();
+  if(PM.current==='game'&&PM.cleanupGame){
+    PM.cleanupGame();
+  }
   if(target==='cover'){var h=$('#cover-hint');if(h)h.style.display='block'}
   PM.show(target);
 });
