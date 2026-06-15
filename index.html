@@ -137,11 +137,263 @@ html,body{width:100%;height:100%;overflow:hidden;font-family:'PingFang SC','Micr
 .toast{position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);background:rgba(0,0,0,.8);color:white;padding:12px 24px;border-radius:25px;font-size:14px;z-index:200;pointer-events:none;opacity:0;transition:opacity .3s}
 .toast.show{opacity:1}
 #poster-canvas{display:none}
-@media(max-height:700px){.tube-img{width:130px}.cover-title{font-size:28px}.problem-cards{gap:8px}.problem-card{padding:12px 8px}}
+
+/* BGM */
+.music-toggle {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  width: 38px;
+  height: 38px;
+  border-radius: 50%;
+  background: radial-gradient(circle, #2d3436 40%, #000 70%, #2d3436 100%);
+  border: 2px solid rgba(255,255,255,0.8);
+  box-shadow: 0 4px 10px rgba(0,0,0,0.3);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 100;
+  cursor: pointer;
+  color: #fff;
+  font-size: 14px;
+}
+.music-toggle::after {
+  content: '';
+  position: absolute;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: #fff;
+  border: 2px solid #2d3436;
+}
+.music-toggle.rotating {
+  animation: rotateDisc 4s linear infinite;
+}
+@keyframes rotateDisc {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+/* SCENARIO SELECT */
+#scenario-select {
+  background: linear-gradient(180deg, #F0FFF4 0%, #E8FFF3 50%, #C6F7E2 100%);
+  padding: 20px 24px;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+}
+.scenario-header {
+  text-align: center;
+  margin-bottom: 24px;
+  margin-top: 30px;
+}
+.scenario-header h2 {
+  font-size: 24px;
+  font-weight: 900;
+  color: #2D3436;
+  margin-bottom: 6px;
+}
+.scenario-sub {
+  font-size: 13px;
+  color: #636E72;
+  font-weight: 600;
+}
+.scenario-cards {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  width: 100%;
+  max-width: 360px;
+}
+.scenario-card {
+  background: rgba(255, 255, 255, 0.85);
+  border-radius: 20px;
+  overflow: hidden;
+  box-shadow: 0 8px 24px rgba(0,0,0,0.06);
+  cursor: pointer;
+  transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+  border: 1.5px solid rgba(255,255,255,0.4);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  display: flex;
+  align-items: center;
+  padding: 12px;
+}
+.scenario-card:active {
+  transform: scale(0.96);
+  box-shadow: 0 4px 12px rgba(0,0,0,0.04);
+}
+.card-img-wrapper {
+  width: 80px;
+  height: 80px;
+  border-radius: 12px;
+  overflow: hidden;
+  flex-shrink: 0;
+  box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+}
+.card-img-wrapper img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.card-info {
+  margin-left: 16px;
+  flex-grow: 1;
+}
+.card-info h3 {
+  font-size: 17px;
+  font-weight: 800;
+  color: #2D3436;
+  margin-bottom: 4px;
+}
+.card-info p {
+  font-size: 12px;
+  color: #636E72;
+  font-weight: 600;
+}
+
+/* SCENARIO PLAY */
+#scenario-play {
+  background: #0b0d10;
+  padding: 0;
+  color: #fff;
+  overflow: hidden;
+}
+.scenario-play-container {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+}
+.scenario-play-media {
+  position: relative;
+  flex: 1;
+  height: 0;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #000;
+}
+#scenario-play-bg {
+  position: absolute;
+  top: -10%;
+  left: -10%;
+  width: 120%;
+  height: 120%;
+  object-fit: cover;
+  filter: blur(22px) brightness(0.45);
+  z-index: 1;
+}
+#scenario-play-bg.ken-burns {
+  animation: kenBurnsEffect 16s ease-in-out infinite alternate;
+}
+#scenario-play-img {
+  position: relative;
+  max-width: 100%;
+  max-height: 100%;
+  object-fit: contain;
+  z-index: 2;
+  box-shadow: 0 10px 35px rgba(0,0,0,0.6);
+}
+@keyframes kenBurnsEffect {
+  0% {
+    transform: scale(1) translate(0, 0);
+  }
+  100% {
+    transform: scale(1.18) translate(-3%, -1.5%);
+  }
+}
+.media-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: radial-gradient(circle, rgba(0,0,0,0) 50%, rgba(0,0,0,0.5) 100%);
+  z-index: 3;
+  pointer-events: none;
+}
+.scenario-play-content {
+  position: relative;
+  flex-shrink: 0;
+  background: linear-gradient(180deg, #1e272e 0%, #0f1418 100%);
+  border-top: 1px solid rgba(255,255,255,0.08);
+  padding: 24px 24px 36px;
+  z-index: 10;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  box-shadow: 0 -10px 30px rgba(0,0,0,0.3);
+}
+.typewriter-box {
+  min-height: 80px;
+  font-size: 15px;
+  line-height: 1.6;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.95);
+  text-shadow: 0 2px 5px rgba(0,0,0,0.7);
+  display: inline;
+}
+.typewriter-box #scenario-play-text {
+  display: inline;
+  white-space: pre-wrap;
+}
+.typewriter-box .cursor {
+  display: inline-block;
+  margin-left: 2px;
+  animation: blink 0.7s infinite;
+  color: #00B894;
+  font-weight: 800;
+}
+@keyframes blink {
+  0%, 100% { opacity: 0; }
+  50% { opacity: 1; }
+}
+.scenario-play-btn {
+  background: linear-gradient(135deg, #00B894, #00996B);
+  color: white;
+  border: none;
+  padding: 14px 0;
+  width: 100%;
+  border-radius: 30px;
+  font-size: 16px;
+  font-weight: 800;
+  cursor: pointer;
+  letter-spacing: 2px;
+  box-shadow: 0 6px 20px rgba(0, 184, 148, 0.4);
+  transition: all 0.2s;
+  animation: buttonPulse 2s infinite;
+  text-align: center;
+}
+.scenario-play-btn:active {
+  transform: scale(0.97);
+}
+@keyframes buttonPulse {
+  0%, 100% { box-shadow: 0 6px 20px rgba(0, 184, 148, 0.4); }
+  50% { box-shadow: 0 6px 30px rgba(0, 184, 148, 0.7); }
+}
+
+@media(max-height:700px){
+  .tube-img{width:130px}
+  .cover-title{font-size:28px}
+  .problem-cards{gap:8px}
+  .problem-card{padding:12px 8px}
+  .scenario-header { margin-top: 10px; margin-bottom: 12px; }
+  .scenario-cards { gap: 10px; }
+  .scenario-card { padding: 8px; }
+  .card-img-wrapper { width: 70px; height: 70px; }
+  .card-info h3 { font-size: 15px; }
+  .card-info p { font-size: 11px; }
+  .scenario-play-content { padding: 20px 20px 40px; }
+}
 </style>
 </head>
 <body>
 <div id="app">
+
+<!-- BGM -->
+<audio id="bgm" src="HOYO-MiX - 飞鼠进行曲 The Parade of Flying Squirrels.mp3" loop></audio>
+<div id="music-btn" class="music-toggle rotating">🎵</div>
 
 <!-- 1. COVER -->
 <div class="page active" id="cover" style="opacity:1">
@@ -163,9 +415,65 @@ html,body{width:100%;height:100%;overflow:hidden;font-family:'PingFang SC','Micr
   <div class="cover-hint" id="cover-hint"><span>👆 点击牙膏 开启笑容修护之旅</span></div>
 </div>
 
+<!-- 1.5. SCENARIO SELECT -->
+<div class="page" id="scenario-select">
+  <button class="back-btn" data-back="cover">←</button>
+  <div class="scenario-header">
+    <h2>🍽️ 选择你的生活情境</h2>
+    <div class="scenario-sub">看看美味背后的口腔隐患</div>
+  </div>
+  <div class="scenario-cards">
+    <div class="scenario-card" data-scenario="hotpot">
+      <div class="card-img-wrapper">
+        <img src="火锅时刻.jpg" alt="火锅时刻">
+      </div>
+      <div class="card-info">
+        <h3>火锅时刻 🌶️</h3>
+        <p>热辣滚烫，牙龈红肿出血受损</p>
+      </div>
+    </div>
+    <div class="scenario-card" data-scenario="bbq">
+      <div class="card-img-wrapper">
+        <img src="烧烤时刻.jpg" alt="烧烤时刻">
+      </div>
+      <div class="card-info">
+        <h3>烧烤时刻 🍢</h3>
+        <p>冷热交替，刺激牙齿酸软敏感</p>
+      </div>
+    </div>
+    <div class="scenario-card" data-scenario="dessert">
+      <div class="card-img-wrapper">
+        <img src="甜点时刻.jpg" alt="甜点时刻">
+      </div>
+      <div class="card-info">
+        <h3>甜点时刻 🍰</h3>
+        <p>甜蜜暴击，糖分滋生细菌与口气</p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- 1.6. SCENARIO PLAY -->
+<div class="page" id="scenario-play">
+  <button class="back-btn" data-back="scenario-select" style="z-index: 50;">←</button>
+  <div class="scenario-play-container">
+    <div class="scenario-play-media">
+      <img id="scenario-play-bg" src="" alt="背景模糊">
+      <img id="scenario-play-img" src="" alt="情境大图">
+      <div class="media-overlay"></div>
+    </div>
+    <div class="scenario-play-content">
+      <div class="typewriter-box">
+        <p id="scenario-play-text"></p><span class="cursor">|</span>
+      </div>
+      <button class="scenario-play-btn" id="scenario-play-btn">立即开启修护 →</button>
+    </div>
+  </div>
+</div>
+
 <!-- 2. DIAGNOSIS -->
 <div class="page" id="diagnosis">
-  <button class="back-btn" data-back="cover">←</button>
+  <button class="back-btn" data-back="scenario-select">←</button>
   <div class="diag-header">
     <h2>🔍 你的口腔困扰是？</h2>
     <div class="diag-sub">选择你最想解决的问题（可多选）</div>
@@ -288,6 +596,47 @@ var sfx={
 };
 sfx.init();
 
+// ========== BGM Manager ==========
+var bgm = $('#bgm');
+var musicBtn = $('#music-btn');
+var bgmStarted = false;
+
+function startBGM() {
+  if (bgmStarted) return;
+  if (!bgm) return;
+  bgm.play().then(function() {
+    bgmStarted = true;
+    if (musicBtn) musicBtn.classList.add('rotating');
+  }).catch(function(err) {
+    console.log('Autoplay deferred:', err);
+  });
+}
+
+// Play BGM on first touch/click
+document.addEventListener('click', function() {
+  startBGM();
+}, { once: true });
+document.addEventListener('touchstart', function() {
+  startBGM();
+}, { once: true });
+
+if (musicBtn) {
+  musicBtn.onclick = function(e) {
+    e.stopPropagation();
+    if (!bgm) return;
+    if (bgm.paused) {
+      bgm.play().then(function() {
+        musicBtn.classList.add('rotating');
+        musicBtn.style.opacity = '1';
+      });
+    } else {
+      bgm.pause();
+      musicBtn.classList.remove('rotating');
+      musicBtn.style.opacity = '0.5';
+    }
+  };
+}
+
 // Page Manager
 var PM={
   current:'cover',
@@ -350,48 +699,180 @@ function initCover(){
       })(i);
     }
     setTimeout(function(){
-      PM.show('diagnosis');
-      initDiagnosis();
+      PM.show('scenario-select');
+      initScenarioSelect();
     },1200);
   };
 }
 
-// ========== 2. DIAGNOSIS ==========
-var diagInited=false;
-function initDiagnosis(){
-  if(diagInited)return;
-  diagInited=true;
-  var cards=$$('.problem-card');
-  var startBtn=$('#diag-start');
-  var selected={};
+// ========== 情境选择与播放 ==========
+var scenarioSelectInited = false;
+var typewriterTimer = null;
+var scenarios = {
+  hotpot: {
+    img: '火锅时刻.jpg',
+    text: '火锅滚烫，红油热辣...\n但高温与辛辣容易让牙龈红肿出血。\n纳爱斯双重清火因子，根源修护受损牙龈！',
+    problems: ['bleeding', 'swelling']
+  },
+  bbq: {
+    img: '烧烤时刻.jpg',
+    text: '冰镇啤酒加烤串，爽快之余...\n冷热交替却刺痛敏感。\n纳爱斯抗敏成分，修护敏感牙齿！',
+    problems: ['sensitive']
+  },
+  dessert: {
+    img: '甜点时刻.jpg',
+    text: '精致甜品，快乐源泉...\n甜分堆积也是细菌的狂欢。\n纳爱斯深层抑菌科技，抑菌率达99.99%！',
+    problems: ['plaque', 'breath']
+  }
+};
 
-  for(var i=0;i<cards.length;i++){
-    (function(card){
-      card.onclick=function(){
+function typewriterEffect(text, element, speed, callback) {
+  if (typewriterTimer) clearTimeout(typewriterTimer);
+  element.textContent = '';
+  var i = 0;
+  function type() {
+    if (i < text.length) {
+      element.textContent += text.charAt(i);
+      i++;
+      typewriterTimer = setTimeout(type, speed);
+    } else if (callback) {
+      callback();
+    }
+  }
+  type();
+}
+
+function initScenarioSelect() {
+  if (scenarioSelectInited) return;
+  scenarioSelectInited = true;
+  var cards = $$('.scenario-card');
+  for (var i = 0; i < cards.length; i++) {
+    (function(card) {
+      card.onclick = function() {
         sfx.pop();
-        var prob=card.getAttribute('data-problem');
-        if(selected[prob]){
-          delete selected[prob];
+        var type = card.getAttribute('data-scenario');
+        PM.show('scenario-play');
+        initScenarioPlay(type);
+      };
+    })(cards[i]);
+  }
+}
+
+function initScenarioPlay(type) {
+  var data = scenarios[type];
+  if (!data) return;
+
+  var bg = $('#scenario-play-bg');
+  var img = $('#scenario-play-img');
+  var textEl = $('#scenario-play-text');
+  var btn = $('#scenario-play-btn');
+
+  bg.src = data.img;
+  img.src = data.img;
+
+  bg.classList.remove('ken-burns');
+  void bg.offsetWidth; // force reflow
+  bg.classList.add('ken-burns');
+
+  typewriterEffect(data.text, textEl, 40);
+
+  btn.onclick = function() {
+    sfx.select();
+    if (typewriterTimer) clearTimeout(typewriterTimer);
+    preselectProblems(data.problems);
+    PM.show('diagnosis');
+    initDiagnosis();
+  };
+}
+
+function preselectProblems(probs) {
+  diagSelected = {};
+  for (var i = 0; i < probs.length; i++) {
+    diagSelected[probs[i]] = true;
+  }
+  if (diagInited) {
+    var cards = $$('.problem-card');
+    var count = 0;
+    for (var i = 0; i < cards.length; i++) {
+      var card = cards[i];
+      var prob = card.getAttribute('data-problem');
+      if (diagSelected[prob]) {
+        card.classList.add('selected');
+        count++;
+      } else {
+        card.classList.remove('selected');
+      }
+    }
+    var startBtn = $('#diag-start');
+    if (startBtn) {
+      if (count > 0) {
+        startBtn.classList.add('ready');
+      } else {
+        startBtn.classList.remove('ready');
+      }
+    }
+  }
+}
+
+// ========== 2. DIAGNOSIS ==========
+var diagSelected = {};
+var diagInited = false;
+function initDiagnosis(){
+  var cards = $$('.problem-card');
+  var startBtn = $('#diag-start');
+
+  function updateDiagUI() {
+    var count = 0;
+    for (var i = 0; i < cards.length; i++) {
+      var card = cards[i];
+      var prob = card.getAttribute('data-problem');
+      if (diagSelected[prob]) {
+        card.classList.add('selected');
+        count++;
+      } else {
+        card.classList.remove('selected');
+      }
+    }
+    if (count > 0) {
+      startBtn.classList.add('ready');
+    } else {
+      startBtn.classList.remove('ready');
+    }
+  }
+
+  if (diagInited) {
+    updateDiagUI();
+    return;
+  }
+  diagInited = true;
+
+  for (var i = 0; i < cards.length; i++) {
+    (function(card){
+      card.onclick = function() {
+        sfx.pop();
+        var prob = card.getAttribute('data-problem');
+        if (diagSelected[prob]) {
+          delete diagSelected[prob];
           card.classList.remove('selected');
-        }else{
-          selected[prob]=true;
+        } else {
+          diagSelected[prob] = true;
           card.classList.add('selected');
         }
-        var count=Object.keys(selected).length;
-        if(count>0){startBtn.classList.add('ready')}
-        else{startBtn.classList.remove('ready')}
+        updateDiagUI();
       };
     })(cards[i]);
   }
 
-  startBtn.onclick=function(){
-    var keys=Object.keys(selected);
-    if(keys.length===0)return;
+  startBtn.onclick = function() {
+    var keys = Object.keys(diagSelected);
+    if (keys.length === 0) return;
     sfx.select();
-    PM.gameState.problems=keys;
+    PM.gameState.problems = keys;
     PM.show('game');
-    setTimeout(initGame,200);
+    setTimeout(initGame, 200);
   };
+
+  updateDiagUI();
 }
 
 // ========== 3. GAME ==========
@@ -942,6 +1423,7 @@ function initPoster(){
   $('#poster-replay').onclick=function(){
     sfx.select();
     PM.gameState={problems:[],score:0,title:'',keywords:[]};
+    diagSelected={};
     PM.show('cover');
     var hint=$('#cover-hint');if(hint)hint.style.display='block';
     var cards=$$('.problem-card');for(var i=0;i<cards.length;i++)cards[i].classList.remove('selected');
@@ -1018,6 +1500,9 @@ document.addEventListener('click',function(e){
   sfx.select();
   if(PM.current==='game'&&PM.cleanupGame){
     PM.cleanupGame();
+  }
+  if(PM.current==='scenario-play'&&typewriterTimer){
+    clearTimeout(typewriterTimer);
   }
   if(target==='cover'){var h=$('#cover-hint');if(h)h.style.display='block'}
   PM.show(target);
